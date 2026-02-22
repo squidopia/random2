@@ -151,6 +151,7 @@
         .btn-knew { background: var(--success); color: white; }
         .btn-didnt { background: var(--error); color: white; }
         .btn-start { background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; }
+        .btn-history { background: rgba(255,255,255,0.1); color: white; margin-top: 10px; font-size: 12px; }
 
         .progress-container {
             width: 100%;
@@ -170,11 +171,13 @@
         .anim-out { pointer-events: none; }
         
         .result-list {
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             margin: 20px 0;
             text-align: left;
         }
+
+        .history-text { font-size: 12px; opacity: 0.5; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -184,6 +187,7 @@
         <h2 style="margin:0;">Latin Grind 🏛️</h2>
         <textarea id="input" placeholder="Word, Meaning"></textarea>
         <button class="btn-start" style="width:100%" onclick="loadVocab()">Start Session</button>
+        <div id="last-score" class="history-text"></div>
     </div>
 
     <div id="game" class="hidden">
@@ -202,7 +206,7 @@
     </div>
 
     <div id="result" class="panel hidden">
-        <h2 id="score-text"></h2>
+        <h2 id="score-text" style="text-align:center"></h2>
         <div id="result-lists" class="result-list"></div>
         <button class="btn-start" style="width:100%" onclick="location.reload()">Try Again</button>
     </div>
@@ -212,14 +216,28 @@
     let cards = [], index = 0, correct = [], wrong = [];
     let startX = 0, currentX = 0, isDragging = false, flipped = false;
     const cardEl = document.getElementById('card');
+    const inputEl = document.getElementById('input');
+
+    // LOCAL STORAGE: Load saved vocab & last score on startup
+    window.onload = () => {
+        const savedTxt = localStorage.getItem('flashflow_vocab');
+        if(savedTxt) inputEl.value = savedTxt;
+        
+        const lastScore = localStorage.getItem('flashflow_last_score');
+        if(lastScore) document.getElementById('last-score').textContent = `Last Session: ${lastScore}%`;
+    };
 
     function loadVocab() {
-        let txt = document.getElementById("input").value;
+        let txt = inputEl.value;
+        // Save to LocalStorage
+        localStorage.setItem('flashflow_vocab', txt);
+
         cards = txt.split('\n').filter(l => l.trim()).map(line => {
             let p = line.includes(',') ? line.split(',') : line.split('\t');
             return { front: p[0]?.trim(), back: p[1]?.trim() };
         }).filter(c => c.front && c.back);
-        if(!cards.length) return alert("Add words!");
+
+        if(!cards.length) return alert("Add words, bro!");
         start();
     }
 
@@ -234,9 +252,11 @@
         if (index >= cards.length) return finish();
         const progress = (index / cards.length) * 100;
         document.getElementById("progress-bar").style.width = `${progress}%`;
+        
         flipped = false;
         cardEl.classList.remove('is-flipped', 'flipping', 'anim-out');
         cardEl.style.transform = 'none';
+        
         document.getElementById("front").textContent = cards[index].front;
         document.getElementById("back").textContent = cards[index].back;
     }
@@ -252,22 +272,28 @@
         if (!isDragging) return;
         currentX = e.clientX - startX;
         let rotate = currentX / 15;
-        let base = flipped ? 'rotateY(180deg)' : '';
-        cardEl.style.transform = `translateX(${currentX}px) rotate(${rotate}deg) ${base}`;
+        
+        // BUG FIX: Maintain the 180deg flip while dragging
+        let baseRotation = flipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+        cardEl.style.transform = `translateX(${currentX}px) rotate(${rotate}deg) ${baseRotation}`;
     });
 
     window.addEventListener('pointerup', () => {
         if (!isDragging) return;
         isDragging = false;
+        
         if (Math.abs(currentX) > 130) {
             handleAction(currentX > 0);
         } else {
+            // TAP detected
             if (Math.abs(currentX) < 10) {
                 flipped = !flipped;
                 cardEl.classList.add('flipping');
-                cardEl.classList.toggle('is-flipped');
+                if(flipped) cardEl.classList.add('is-flipped');
+                else cardEl.classList.remove('is-flipped');
                 setTimeout(() => cardEl.classList.remove('flipping'), 600);
             } else {
+                // Return to center
                 cardEl.style.transition = 'transform 0.4s ease';
                 cardEl.style.transform = flipped ? 'rotateY(180deg)' : 'none';
             }
@@ -278,19 +304,33 @@
     function handleAction(knew) {
         let c = cards[index];
         if (knew) correct.push(c); else wrong.push(c);
+        
         cardEl.classList.add('anim-out');
         cardEl.style.transition = 'transform 0.5s ease-in';
-        cardEl.style.transform = `translateX(${knew ? 1000 : -1000}px) scale(0.5)`;
-        setTimeout(() => { index++; showCard(); }, 400);
+        
+        // Keep flip state during exit animation
+        let baseRotation = flipped ? 'rotateY(180deg)' : '';
+        cardEl.style.transform = `translateX(${knew ? 1000 : -1000}px) ${baseRotation} scale(0.5)`;
+        
+        setTimeout(() => { 
+            index++; 
+            showCard(); 
+        }, 400);
     }
 
     function finish() {
         document.getElementById("game").classList.add("hidden");
         document.getElementById("result").classList.remove("hidden");
+        
         let pct = Math.round((correct.length / cards.length) * 100);
+        localStorage.setItem('flashflow_last_score', pct); // Store score
+        
         document.getElementById("score-text").innerHTML = `Score: ${pct}% 🎯`;
-        let html = wrong.map(c => `<div style="color:var(--error)">❌ ${c.front} → ${c.back}</div>`).join('');
-        document.getElementById("result-lists").innerHTML = html || "Perfect Score! 👑";
+        
+        let html = wrong.length > 0 ? `<p style="opacity:0.6">Review these:</p>` : "";
+        html += wrong.map(c => `<div style="background:rgba(255,82,82,0.1); padding:10px; border-radius:10px; margin-bottom:5px;">❌ ${c.front} → ${c.back}</div>`).join('');
+        
+        document.getElementById("result-lists").innerHTML = html || "Crown's yours, King! 👑";
     }
 </script>
 </body>
