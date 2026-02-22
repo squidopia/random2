@@ -1,1 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vocab Cards</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: linear-gradient(135deg,#6a8cff,#9a6aff);
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#222;
+}
 
+.app{
+    width:360px;
+    max-width:95vw;
+}
+
+.card{
+    width:100%;
+    height:220px;
+    perspective:1000px;
+}
+
+.inner{
+    width:100%;
+    height:100%;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:transform .6s;
+}
+
+.flipped{ transform:rotateY(180deg); }
+
+.face{
+    position:absolute;
+    width:100%;
+    height:100%;
+    backface-visibility:hidden;
+    border-radius:20px;
+    background:white;
+    box-shadow:0 10px 25px rgba(0,0,0,.2);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    text-align:center;
+    font-size:22px;
+}
+
+.back{
+    transform:rotateY(180deg);
+    background:#f5f6ff;
+}
+
+.controls{
+    margin-top:15px;
+    display:flex;
+    gap:10px;
+}
+
+button{
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    background:white;
+    cursor:pointer;
+    font-weight:600;
+}
+
+textarea{
+    width:100%;
+    height:120px;
+    border-radius:10px;
+    border:none;
+    padding:10px;
+    margin-bottom:10px;
+    font-family:monospace;
+}
+
+.panel{
+    background:white;
+    padding:15px;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,.2);
+}
+
+.hidden{ display:none; }
+
+.result-list{
+    max-height:150px;
+    overflow:auto;
+    font-size:14px;
+    margin-top:10px;
+}
+
+.score{
+    font-size:22px;
+    font-weight:700;
+    margin-bottom:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- INPUT PANEL -->
+<div id="setup" class="panel">
+<h3>Paste vocabulary</h3>
+<p style="font-size:13px">Format: word TAB meaning OR word,meaning</p>
+<textarea id="input"></textarea>
+<div class="controls">
+<button onclick="loadVocab()">Start</button>
+<button onclick="loadSaved()">Load Saved</button>
+</div>
+</div>
+
+<!-- CARD PANEL -->
+<div id="game" class="hidden">
+<div class="card" id="card">
+    <div class="inner" id="inner">
+        <div class="face" id="front"></div>
+        <div class="face back" id="back"></div>
+    </div>
+</div>
+
+<div class="controls">
+<button onclick="mark(true)">Knew</button>
+<button onclick="mark(false)">Didn't</button>
+</div>
+</div>
+
+<!-- RESULT PANEL -->
+<div id="result" class="panel hidden">
+<div class="score" id="score"></div>
+<div><b>Wrong:</b></div>
+<div class="result-list" id="wrong"></div>
+<div><b>Correct:</b></div>
+<div class="result-list" id="correct"></div>
+<button style="margin-top:10px" onclick="location.reload()">Restart</button>
+</div>
+
+</div>
+
+<script>
+let cards=[];
+let index=0;
+let correct=[];
+let wrong=[];
+
+function parse(text){
+    let lines=text.split(/\n/);
+    let out=[];
+    for(let l of lines){
+        if(!l.trim()) continue;
+        let parts=l.includes(",") ? l.split(",") : l.split("\t");
+        if(parts.length>=2){
+            out.push({front:parts[0].trim(), back:parts[1].trim()});
+        }
+    }
+    return out;
+}
+
+function loadVocab(){
+    let txt=document.getElementById("input").value;
+    cards=parse(txt);
+    if(cards.length===0) return alert("No vocab found");
+    localStorage.setItem("vocabCards",JSON.stringify(cards));
+    start();
+}
+
+function loadSaved(){
+    let saved=localStorage.getItem("vocabCards");
+    if(!saved) return alert("Nothing saved");
+    cards=JSON.parse(saved);
+    start();
+}
+
+function start(){
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+    index=0; correct=[]; wrong=[];
+    showCard();
+}
+
+function showCard(){
+    let c=cards[index];
+    if(!c) return finish();
+    document.getElementById("front").textContent=c.front;
+    document.getElementById("back").textContent=c.back;
+    document.getElementById("inner").classList.remove("flipped");
+}
+
+document.getElementById("card").onclick=()=>{
+    document.getElementById("inner").classList.toggle("flipped");
+};
+
+function mark(knew){
+    let c=cards[index];
+    if(knew) correct.push(c);
+    else wrong.push(c);
+    index++;
+    showCard();
+}
+
+function finish(){
+    document.getElementById("game").classList.add("hidden");
+    document.getElementById("result").classList.remove("hidden");
+
+    document.getElementById("score").textContent=
+        `Score: ${correct.length} correct, ${wrong.length} wrong`;
+
+    document.getElementById("wrong").innerHTML=
+        wrong.map(c=>`• ${c.front} → ${c.back}`).join("<br>");
+
+    document.getElementById("correct").innerHTML=
+        correct.map(c=>`• ${c.front} → ${c.back}`).join("<br>");
+}
+
+/* Swipe detection */
+let startX=0;
+document.getElementById("card").addEventListener("pointerdown",e=>{
+    startX=e.clientX;
+});
+document.getElementById("card").addEventListener("pointerup",e=>{
+    let dx=e.clientX-startX;
+    if(Math.abs(dx)<40) return;
+    if(dx<0) mark(true);   // left = knew
+    else mark(false);      // right = didn't
+});
+</script>
+
+</body>
+</html>
