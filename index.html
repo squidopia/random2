@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Volcabulary thing</title>
+    <title>Vocabulary thing</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <style>
@@ -199,14 +199,14 @@
 
     <!-- SETUP -->
     <div id="setup" class="panel">
-        <h2 style="margin:0; font-size: 28px;">Latin Grind 🏛️</h2>
-        <p style="opacity:0.6; font-size:14px;">Paste vocab: Word, Meaning</p>
+        <h2 style="margin:0; font-size: 28px;">Vocabulary learning thing</h2>
+        <p style="opacity:0.6; font-size:14px;">Format: Word, Meaning</p>
 
         <textarea id="input"
-        placeholder="Amo, Ich liebe&#10;Video, Ich sehe"></textarea>
+        placeholder="Format: Word, Meaning"></textarea>
 
         <div class="controls">
-            <button class="btn-start" onclick="loadVocab()">Let's Go</button>
+            <button class="btn-start" onclick="loadVocab()">Start</button>
         </div>
     </div>
 
@@ -227,8 +227,8 @@
         </div>
 
         <div class="controls">
-            <button class="btn-didnt" onclick="handleAction(false)">Skip</button>
-            <button class="btn-knew" onclick="handleAction(true)">Got it</button>
+            <button class="btn-didnt" onclick="handleAction(false)">Didn't Know</button>
+            <button class="btn-knew" onclick="handleAction(true)">Known</button>
         </div>
     </div>
 
@@ -236,7 +236,7 @@
     <div id="result" class="panel hidden">
         <h2 id="score-text" style="text-align:center"></h2>
         <div id="result-lists" style="max-height:35vh; overflow-y:auto; padding-right:10px;"></div>
-        <button class="btn-start" style="width:100%; margin-top:25px" onclick="location.reload()">Reset Session</button>
+        <button class="btn-start" style="width:100%; margin-top:25px" onclick="location.reload()">Reset</button>
     </div>
 
 </div>
