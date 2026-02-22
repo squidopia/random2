@@ -1,240 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Vocab Cards</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{
-    margin:0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    background: linear-gradient(135deg,#6a8cff,#9a6aff);
-    height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#222;
-}
+    <meta charset="UTF-8">
+    <title>FlashFlow Vocab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        :root {
+            --primary: #6a8cff;
+            --secondary: #9a6aff;
+            --success: #4caf50;
+            --error: #ff5252;
+            --bg: #121212;
+        }
 
-.app{
-    width:360px;
-    max-width:95vw;
-}
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            overflow: hidden;
+            touch-action: none; /* Prevents scrolling while swiping */
+        }
 
-.card{
-    width:100%;
-    height:220px;
-    perspective:1000px;
-}
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-.inner{
-    width:100%;
-    height:100%;
-    position:relative;
-    transform-style:preserve-3d;
-    transition:transform .6s;
-}
+        /* Input Panel */
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
 
-.flipped{ transform:rotateY(180deg); }
+        textarea {
+            width: 100%;
+            height: 150px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            color: white;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: monospace;
+            box-sizing: border-box;
+            resize: none;
+        }
 
-.face{
-    position:absolute;
-    width:100%;
-    height:100%;
-    backface-visibility:hidden;
-    border-radius:20px;
-    background:white;
-    box-shadow:0 10px 25px rgba(0,0,0,.2);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    text-align:center;
-    font-size:22px;
-}
+        /* Card Engine */
+        #game {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
 
-.back{
-    transform:rotateY(180deg);
-    background:#f5f6ff;
-}
+        .card-stack {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            perspective: 1000px;
+        }
 
-.controls{
-    margin-top:15px;
-    display:flex;
-    gap:10px;
-}
+        .card {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out; /* Smooth follow-through */
+            cursor: grab;
+        }
 
-button{
-    flex:1;
-    padding:10px;
-    border:none;
-    border-radius:10px;
-    background:white;
-    cursor:pointer;
-    font-weight:600;
-}
+        .card.flipping {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-textarea{
-    width:100%;
-    height:120px;
-    border-radius:10px;
-    border:none;
-    padding:10px;
-    margin-bottom:10px;
-    font-family:monospace;
-}
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            box-sizing: border-box;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            background: white;
+            color: #1a1a2e;
+        }
 
-.panel{
-    background:white;
-    padding:15px;
-    border-radius:20px;
-    box-shadow:0 10px 25px rgba(0,0,0,.2);
-}
+        .back {
+            transform: rotateY(180deg);
+            background: #f0f3ff;
+            color: var(--secondary);
+        }
 
-.hidden{ display:none; }
+        .flipped {
+            transform: rotateY(180deg) !important;
+        }
 
-.result-list{
-    max-height:150px;
-    overflow:auto;
-    font-size:14px;
-    margin-top:10px;
-}
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
 
-.score{
-    font-size:22px;
-    font-weight:700;
-    margin-bottom:10px;
-}
-</style>
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-knew { background: var(--success); color: white; }
+        .btn-didnt { background: var(--error); color: white; }
+        .btn-start { background: var(--primary); color: white; }
+
+        .hidden { display: none !important; }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-bottom: 20px;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .hint {
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.6;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
 
-<div class="app">
+<div class="app-container">
 
-<!-- INPUT PANEL -->
-<div id="setup" class="panel">
-<h3>Paste vocabulary</h3>
-<p style="font-size:13px">Format: word TAB meaning OR word,meaning</p>
-<textarea id="input"></textarea>
-<div class="controls">
-<button onclick="loadVocab()">Start</button>
-<button onclick="loadSaved()">Load Saved</button>
-</div>
-</div>
-
-<!-- CARD PANEL -->
-<div id="game" class="hidden">
-<div class="card" id="card">
-    <div class="inner" id="inner">
-        <div class="face" id="front"></div>
-        <div class="face back" id="back"></div>
+    <div id="setup" class="panel">
+        <h2 style="margin-top:0">Study Mode 🔥</h2>
+        <p style="font-size:14px; opacity:0.8">Paste your words (Word, Meaning)</p>
+        <textarea id="input" placeholder="Apple, Manzana&#10;Book, Libro"></textarea>
+        <div class="controls">
+            <button class="btn-start" onclick="loadVocab()">Start Session</button>
+            <button style="background:#444; color:white;" onclick="loadSaved()">Load Last</button>
+        </div>
     </div>
-</div>
 
-<div class="controls">
-<button onclick="mark(true)">Knew</button>
-<button onclick="mark(false)">Didn't</button>
-</div>
-</div>
+    <div id="game" class="hidden">
+        <div class="progress-container"><div id="progress-bar"></div></div>
+        
+        <div class="card-stack" id="stack">
+            <div class="card" id="card">
+                <div class="face front" id="front">Word</div>
+                <div class="face back" id="back">Meaning</div>
+            </div>
+        </div>
 
-<!-- RESULT PANEL -->
-<div id="result" class="panel hidden">
-<div class="score" id="score"></div>
-<div><b>Wrong:</b></div>
-<div class="result-list" id="wrong"></div>
-<div><b>Correct:</b></div>
-<div class="result-list" id="correct"></div>
-<button style="margin-top:10px" onclick="location.reload()">Restart</button>
-</div>
+        <div class="controls">
+            <button class="btn-didnt" onclick="manualMark(false)">Forgot</button>
+            <button class="btn-knew" onclick="manualMark(true)">Got it!</button>
+        </div>
+        <p class="hint">Tap to flip • Swipe Right for "Got it" • Swipe Left for "Forgot"</p>
+    </div>
+
+    <div id="result" class="panel hidden">
+        <h2 id="score-text">Finished!</h2>
+        <div id="result-lists" style="max-height: 300px; overflow-y: auto;">
+            </div>
+        <button class="btn-start" style="width:100%; margin-top:20px" onclick="location.reload()">Try Again</button>
+    </div>
 
 </div>
 
 <script>
-let cards=[];
-let index=0;
-let correct=[];
-let wrong=[];
+    let cards = [];
+    let index = 0;
+    let correct = [];
+    let wrong = [];
+    
+    // Swipe & Animation state
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    const cardEl = document.getElementById('card');
 
-function parse(text){
-    let lines=text.split(/\n/);
-    let out=[];
-    for(let l of lines){
-        if(!l.trim()) continue;
-        let parts=l.includes(",") ? l.split(",") : l.split("\t");
-        if(parts.length>=2){
-            out.push({front:parts[0].trim(), back:parts[1].trim()});
-        }
+    function parse(text) {
+        return text.split('\n')
+            .filter(line => line.trim())
+            .map(line => {
+                let parts = line.includes(',') ? line.split(',') : line.split('\t');
+                return { front: parts[0]?.trim(), back: parts[1]?.trim() };
+            })
+            .filter(c => c.front && c.back);
     }
-    return out;
-}
 
-function loadVocab(){
-    let txt=document.getElementById("input").value;
-    cards=parse(txt);
-    if(cards.length===0) return alert("No vocab found");
-    localStorage.setItem("vocabCards",JSON.stringify(cards));
-    start();
-}
+    function loadVocab() {
+        let txt = document.getElementById("input").value;
+        cards = parse(txt);
+        if(cards.length === 0) return alert("Add some words first, bro!");
+        localStorage.setItem("vocabCards", JSON.stringify(cards));
+        start();
+    }
 
-function loadSaved(){
-    let saved=localStorage.getItem("vocabCards");
-    if(!saved) return alert("Nothing saved");
-    cards=JSON.parse(saved);
-    start();
-}
+    function loadSaved() {
+        let saved = localStorage.getItem("vocabCards");
+        if(!saved) return alert("Nothing saved yet!");
+        cards = JSON.parse(saved);
+        start();
+    }
 
-function start(){
-    document.getElementById("setup").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-    index=0; correct=[]; wrong=[];
-    showCard();
-}
+    function start() {
+        document.getElementById("setup").classList.add("hidden");
+        document.getElementById("game").classList.remove("hidden");
+        index = 0; correct = []; wrong = [];
+        showCard();
+    }
 
-function showCard(){
-    let c=cards[index];
-    if(!c) return finish();
-    document.getElementById("front").textContent=c.front;
-    document.getElementById("back").textContent=c.back;
-    document.getElementById("inner").classList.remove("flipped");
-}
+    function showCard() {
+        if (index >= cards.length) return finish();
+        
+        const c = cards[index];
+        const progress = (index / cards.length) * 100;
+        document.getElementById("progress-bar").style.width = `${progress}%`;
+        
+        // Reset card state
+        cardEl.style.transform = 'none';
+        cardEl.classList.remove('flipped', 'flipping');
+        document.getElementById("front").textContent = c.front;
+        document.getElementById("back").textContent = c.back;
+    }
 
-document.getElementById("card").onclick=()=>{
-    document.getElementById("inner").classList.toggle("flipped");
-};
+    // Interaction Logic
+    cardEl.addEventListener('pointerdown', e => {
+        startX = e.clientX;
+        isDragging = true;
+    });
 
-function mark(knew){
-    let c=cards[index];
-    if(knew) correct.push(c);
-    else wrong.push(c);
-    index++;
-    showCard();
-}
+    window.addEventListener('pointermove', e => {
+        if (!isDragging || cardEl.classList.contains('flipping')) return;
+        currentX = e.clientX - startX;
+        let rotate = currentX / 10;
+        cardEl.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+        
+        // Change colors based on swipe direction
+        if (currentX > 50) cardEl.querySelector('.front').style.background = '#e8f5e9';
+        else if (currentX < -50) cardEl.querySelector('.front').style.background = '#ffebee';
+        else cardEl.querySelector('.front').style.background = 'white';
+    });
 
-function finish(){
-    document.getElementById("game").classList.add("hidden");
-    document.getElementById("result").classList.remove("hidden");
+    window.addEventListener('pointerup', e => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        if (Math.abs(currentX) > 120) {
+            // Swipe threshold met
+            mark(currentX > 0);
+        } else {
+            // Reset position if tap or small movement
+            if (Math.abs(currentX) < 5) {
+                cardEl.classList.add('flipping');
+                cardEl.classList.toggle('flipped');
+            } else {
+                cardEl.style.transform = 'translateX(0) rotate(0)';
+                cardEl.querySelector('.front').style.background = 'white';
+            }
+        }
+        currentX = 0;
+    });
 
-    document.getElementById("score").textContent=
-        `Score: ${correct.length} correct, ${wrong.length} wrong`;
+    function mark(knew) {
+        let c = cards[index];
+        if (knew) correct.push(c); else wrong.push(c);
+        
+        // Fly away animation
+        const direction = knew ? 1000 : -1000;
+        cardEl.style.transition = 'transform 0.4s ease-in';
+        cardEl.style.transform = `translateX(${direction}px) rotate(${direction/10}deg)`;
+        
+        setTimeout(() => {
+            cardEl.style.transition = 'none';
+            index++;
+            showCard();
+        }, 300);
+    }
 
-    document.getElementById("wrong").innerHTML=
-        wrong.map(c=>`• ${c.front} → ${c.back}`).join("<br>");
+    function manualMark(knew) {
+        if (isDragging) return;
+        mark(knew);
+    }
 
-    document.getElementById("correct").innerHTML=
-        correct.map(c=>`• ${c.front} → ${c.back}`).join("<br>");
-}
-
-/* Swipe detection */
-let startX=0;
-document.getElementById("card").addEventListener("pointerdown",e=>{
-    startX=e.clientX;
-});
-document.getElementById("card").addEventListener("pointerup",e=>{
-    let dx=e.clientX-startX;
-    if(Math.abs(dx)<40) return;
-    if(dx<0) mark(true);   // left = knew
-    else mark(false);      // right = didn't
-});
+    function finish() {
+        document.getElementById("game").classList.add("hidden");
+        document.getElementById("result").classList.remove("hidden");
+        document.getElementById("score-text").innerHTML = `Done! 🎯<br><span style="font-size:18px">${correct.length} correct • ${wrong.length} missed</span>`;
+        
+        let html = "";
+        if(wrong.length > 0) {
+            html += `<h4 style="color:var(--error)">To Review:</h4>`;
+            wrong.forEach(c => html += `<div style="margin-bottom:5px; font-size:14px">❌ ${c.front} → ${c.back}</div>`);
+        }
+        if(correct.length > 0) {
+            html += `<h4 style="color:var(--success); margin-top:20px">Mastered:</h4>`;
+            correct.forEach(c => html += `<div style="margin-bottom:5px; font-size:14px; opacity:0.7">✅ ${c.front}</div>`);
+        }
+        document.getElementById("result-lists").innerHTML = html;
+    }
 </script>
 
 </body>
