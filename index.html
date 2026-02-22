@@ -246,7 +246,7 @@ function loadVocab() {
         return { front: p[0]?.trim(), back: p[1]?.trim() };
     }).filter(c => c.front && c.back);
 
-    if(!cards.length) return alert("Paste some words, bro!");
+    if(!cards.length) return alert("Paste something!");
     start();
 }
 
